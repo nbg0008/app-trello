@@ -9,9 +9,6 @@ spring:
       data-locations: classpath*:database/migrations.sql
       mode: always
   datasource:
-    url: jdbc:mysql://localhost:3306/trello
-    username: root  
-    password: Macarron_3
     driverClassName: com.mysql.cj.jdbc.Driver
   mail:
     host: smtp.gmail.com
