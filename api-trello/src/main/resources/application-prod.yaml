@@ -6,3 +6,6 @@ spring:
     url: jdbc:${MYSQL_URL}
     username: ${MYSQLUSER}
     password: ${MYSQLPASSWORD}
+  logging:
+    level:
+      ROOT: DEBUG
