@@ -4,10 +4,12 @@ import com.medac.trello.api.dto.CardRequestDTO;
 import com.medac.trello.api.dto.CardResponseDTO;
 import com.medac.trello.api.model.Card;
 import com.medac.trello.api.model.Lista;
+import com.medac.trello.api.model.User;
 import com.medac.trello.api.service.CardService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,7 +30,9 @@ public class CardController {
     @PostMapping("/listas/{listId}/tarjetas")
     public ResponseEntity<CardResponseDTO> crearTarjeta(
             @PathVariable Long listId,
-            @RequestBody CardRequestDTO cardDto
+            @RequestBody CardRequestDTO cardDto,
+            @AuthenticationPrincipal User authenticatedUser
+
     ) {
         // 1. Mapeo DTO -> Entidad (Solo los campos de datos)
         Card cardParaGuardar = new Card();
@@ -43,7 +47,7 @@ public class CardController {
         }
 
         // 2. Llamada al servicio con la entidad y el ID de la lista padre
-        Card cardGuardada = cardService.guardarCard(listId, cardParaGuardar, cardDto.getLabelId());
+        Card cardGuardada = cardService.guardarCard(authenticatedUser, listId, cardParaGuardar, cardDto.getLabelId());
 
         // 3. Mapeo Entidad -> DTO de Respuesta
         CardResponseDTO responseDto = new CardResponseDTO(cardGuardada);
@@ -104,7 +108,9 @@ public class CardController {
    @PutMapping("/tarjetas/{cardId}")
    public ResponseEntity<CardResponseDTO> actualizarTarjeta(
            @PathVariable Long cardId,
-           @RequestBody CardRequestDTO cardDto
+           @RequestBody CardRequestDTO cardDto,
+           @AuthenticationPrincipal User authenticatedUser
+
    ) {
        // 1. Mapeo DTO
        Card cardParaActualizar = new Card();
@@ -128,6 +134,7 @@ public class CardController {
 
        // 2. Llamada al servicio
        Card cardActualizada = cardService.actualizarCard(
+               authenticatedUser,
                cardId,
                cardParaActualizar,
                cardDto.getLabelId(),
@@ -156,8 +163,9 @@ public class CardController {
     // ---------------------- D - ELIMINAR ----------------------
     // URI: /tarjetas/{cardId}
     @DeleteMapping("/tarjetas/{cardId}")
-    public ResponseEntity<HttpStatus> eliminarTarjeta(@PathVariable Long cardId) {
-        cardService.eliminarTarjeta(cardId);
+    public ResponseEntity<HttpStatus> eliminarTarjeta(@PathVariable Long cardId,
+                                                      @AuthenticationPrincipal User authenticatedUser) {
+        cardService.eliminarTarjeta(authenticatedUser, cardId);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT); // 204
     }
 }

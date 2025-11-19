@@ -1,23 +1,26 @@
 package com.medac.trello.api.service;
 
 import com.medac.trello.api.exception.ResourceNotFoundException;
-import com.medac.trello.api.model.Card;
-import com.medac.trello.api.model.HistorialMovimiento;
-import com.medac.trello.api.model.Lista;
-import com.medac.trello.api.model.Label;
+import com.medac.trello.api.model.*;
+import com.medac.trello.api.model.notification.*;
 import com.medac.trello.api.model.repository.CardRepository;
 import com.medac.trello.api.model.repository.HistorialMovimientoRepository;
 import com.medac.trello.api.model.repository.LabelRepository;
 import com.medac.trello.api.model.repository.CommentRepository;
 import com.medac.trello.api.model.repository.ListaRepository;
 import jakarta.transaction.Transactional;
+import org.antlr.v4.runtime.atn.SemanticContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+
+import static com.medac.trello.api.model.notification.CardUpdatedNotificationDetails.CardDetail.*;
+import static com.medac.trello.api.model.notification.ListaUpdatedNotificationDetails.ListaDetail.BOARD;
 
 @Service
 public class CardService {
@@ -37,10 +40,13 @@ public class CardService {
     @Autowired
     private CommentRepository commentRepository;
 
+    @Autowired
+    private NotificationService notificationService;
+
     // ---------------------- C - CREAR TARJETA ----------------------
 
     @Transactional
-    public Card guardarCard(Long listId, Card card, Long labelId) {
+    public Card guardarCard(User authenticatedUser, Long listId, Card card, Long labelId) {
         // 1. Obtener la lista (columna)
         Lista lista = listaRepository.findById(listId)
                 .orElseThrow(() -> new ResourceNotFoundException("Lista no encontrada con id: " + listId));
@@ -55,7 +61,15 @@ public class CardService {
         applyLabel(card, labelId, lista);
 
         // 3. Guardar
-        return cardRepository.save(card);
+        final var updatedCard = cardRepository.save(card);
+        lista.getBoard().getMembers().forEach(member ->
+                notificationService.addNotification(authenticatedUser.getId(), member.getId(),
+                        new CardAddedNotificationDetails(
+                                updatedCard.getTitle(),
+                                lista.getNombre(),
+                                lista.getBoard().getName())
+                ));
+        return updatedCard;
     }
 
     // ---------------------- R - LEER TARJETAS ----------------------
@@ -85,6 +99,7 @@ public class CardService {
 
     @Transactional
     public Card actualizarCard(
+            User usuario,
             Long idTarjeta,
             Card cardDetails,
             Long labelId,
@@ -98,20 +113,38 @@ public class CardService {
         Lista listaOriginal = cardExistente.getLista(); // Lista de origen
         Long listaOrigenId = listaOriginal != null ? listaOriginal.getIdLista() : null;
 
+        List<NotificationDetails> notificaciones = new ArrayList<>();
+
         // 2. Actualizar campos simples
         if (cardDetails.getTitle() != null) {
+            notificaciones.add(new CardUpdatedNotificationDetails<>(
+                    cardExistente.getTitle(),
+                    cardExistente.getTitle(),
+                    cardDetails.getTitle(), NAME));
             cardExistente.setTitle(cardDetails.getTitle());
         }
         if (cardDetails.getDescription() != null) {
+            notificaciones.add(new CardUpdatedNotificationDetails<>(
+                    cardExistente.getTitle(),
+                    cardExistente.getDescription(),
+                    cardDetails.getDescription(), DESCRIPCION));
             cardExistente.setDescription(cardDetails.getDescription());
         }
         Instant candidateStartsOn = startsOnPresent ? cardDetails.getStartsOn() : cardExistente.getStartsOn();
         Instant candidateExpiresOn = expiresOnPresent ? cardDetails.getExpiresOn() : cardExistente.getExpiresOn();
         validateCardDates(candidateStartsOn, candidateExpiresOn);
         if (startsOnPresent) {
+            notificaciones.add(new CardUpdatedNotificationDetails<>(
+                    cardExistente.getTitle(),
+                    cardExistente.getStartsOn(),
+                    cardDetails.getStartsOn(), STARTS_ON));
             cardExistente.setStartsOn(candidateStartsOn);
         }
         if (expiresOnPresent) {
+            notificaciones.add(new CardUpdatedNotificationDetails<>(
+                    cardExistente.getTitle(),
+                    cardExistente.getExpiresOn(),
+                    cardDetails.getExpiresOn(), EXPIRES_ON));
             cardExistente.setExpiresOn(candidateExpiresOn);
         }
 
@@ -130,6 +163,10 @@ public class CardService {
         Lista listaDestino = listaOriginal;
 
         if (cambioDeLista) {
+            notificaciones.add(new CardUpdatedNotificationDetails<>(
+                    cardExistente.getTitle(),
+                    listaOriginal.getNombre(),
+                    listaDestino.getNombre(), LISTA));
             listaDestino = listaRepository.findById(listaDestinoId)
                     .orElseThrow(() -> new ResourceNotFoundException("Lista destino no encontrada con id: " + listaDestinoId));
 
@@ -160,15 +197,22 @@ public class CardService {
         }
 
         reubicarTarjeta(listaDestino.getIdLista(), cardExistente.getId(), posicionObjetivo);
-
-        return cardRepository.findById(cardExistente.getId())
+        final var updatedCard = cardRepository.findById(cardExistente.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Tarjeta no encontrada con id: " + cardExistente.getId()));
+
+        notificaciones.add(new CardUpdatedNotificationDetails<>(
+                cardExistente.getTitle(),
+                cardExistente.getCardOrder(),
+                updatedCard.getCardOrder(), ORDER));
+        updatedCard.getLista().getBoard().getMembers().forEach(member ->
+                notificationService.addNotifications(usuario.getId(), member.getId(), notificaciones));
+        return updatedCard;
     }
 
     // ---------------------- D - ELIMINAR TARJETA ----------------------
 
     @Transactional
-    public void eliminarTarjeta(Long idTarjeta) {
+    public void eliminarTarjeta(User user, Long idTarjeta) {
         Card cardExistente = cardRepository.findById(idTarjeta)
                 .orElseThrow(() -> new ResourceNotFoundException("Tarjeta no encontrada con id: " + idTarjeta));
 
@@ -179,6 +223,12 @@ public class CardService {
         commentRepository.deleteAllByOwningCardId(idTarjeta);
 
         cardRepository.delete(cardExistente);
+        cardExistente.getLista().getBoard().getMembers().forEach(member ->
+                notificationService.addNotification(user.getId(), member.getId(),
+                        new CardDeletedNotificationDetails(
+                                cardExistente.getTitle(),
+                                cardExistente.getLista().getNombre())
+                ));
     }
 
     private void validateCardDates(Instant startsOn, Instant expiresOn) {
