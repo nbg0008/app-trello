@@ -10,19 +10,6 @@ spring:
       mode: always
   datasource:
     driverClassName: com.mysql.cj.jdbc.Driver
-  mail:
-    host: smtp.gmail.com
-    port: 587
-    username: equipoflomind@gmail.com
-    password: gyumpqgcagnjgial
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-            required: true
-    default-encoding: UTF-8
 
 security:
   jwt:
@@ -32,6 +19,7 @@ security:
 app:
   base-url: http://localhost:8080/trello/v1/
   frontend-base-url: http://localhost:3000
+  resend-api-key: re_N36S4xBh_7iNXoQH5aqNpPCh72VANFZA2
   domain:
     success-url: http://localhost:3000/suscripcion/exito
     cancel-url: http://localhost:3000/suscripcion/fallo

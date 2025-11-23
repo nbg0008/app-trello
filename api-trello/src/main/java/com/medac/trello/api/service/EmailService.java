@@ -1,37 +1,30 @@
 package com.medac.trello.api.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mail.MailException;
+import com.resend.Resend;
+import com.resend.core.exception.ResendException;
+import com.resend.services.emails.model.CreateEmailOptions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.stereotype.Service;
-import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 
 @Service
 public class EmailService {
-    @PostConstruct
-    public void init() {
-        System.out.println("📬 EmailService cargado correctamente");
-    }
 
-    @Autowired
-    private JavaMailSender mailSender; // Inyecta el componente de envío de Spring
+    private static final Logger LOG = LoggerFactory.getLogger(EmailService.class);
 
+    private final Resend resendApi;
 
-    @Autowired
-    public EmailService(JavaMailSender mailSender) {
-        this.mailSender = mailSender;
+    public EmailService(@Value("${app.resend-api-key}") String resendApiKey) {
+        this.resendApi = new Resend(resendApiKey);
     }
 
 
     public void sendConfirmationEmail(String toEmail, String token) {
-        System.out.println("📬 Entrando a EmailService.sendConfirmationEmail()");
+        LOG.info("📬 Entrando a EmailService.sendConfirmationEmail()");
 
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(toEmail);
-            message.setSubject("Confirma tu Cuenta en Trello App");
 
             String confirmationUrl = "http://localhost:8080/trello/v1/auth/confirm?token=" + token;
             String emailContent = String.format(
@@ -39,51 +32,48 @@ public class EmailService {
                     confirmationUrl
             );
 
-            message.setText(emailContent);
-
-            System.out.println("📨 Enviando correo a " + toEmail);
-            mailSender.send(message);
-            System.out.println("✅ Correo enviado correctamente");
+            LOG.info("📨 Enviando correo a {}", toEmail);
+            sendEmail(toEmail, "Confirma tu Cuenta en Trello App", emailContent);
+            LOG.info("✅ Correo enviado correctamente");
 
         } catch (Exception e) {
-            System.out.println("❌ Error enviando correo: " + e.getMessage());
-            e.printStackTrace();
+            LOG.error("❌ Error enviando correo: ", e);
         }
     }
 
     public void sendBoardInvitation(String toEmail, String boardName, String acceptanceLink) {
-        System.out.println("📬 Entrando a EmailService.sendBoardInvitation()");
+        LOG.info("📬 Entrando a EmailService.sendBoardInvitation()");
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(toEmail);
-            message.setSubject("¡Has sido invitado al tablero de Trello: " + boardName + "!");
-
             String emailContent = String.format(
                     "¡Hola! Te han invitado a colaborar en el tablero '%s'.\n\n" +
                             "Haz clic en el enlace para aceptar la invitación y unirte:\n%s",
                     boardName, acceptanceLink
             );
 
-            message.setText(emailContent);
+            LOG.info("📨 Enviando invitación a {}", toEmail);
+            sendEmail(toEmail, "¡Has sido invitado al tablero de Trello: " + boardName + "!", emailContent);
+            LOG.info("✅ Correo de invitación enviado correctamente");
 
-            System.out.println("📨 Enviando invitación a " + toEmail);
-            mailSender.send(message);
-            System.out.println("✅ Correo de invitación enviado correctamente");
-
-        } catch (MailException e) {
-            System.err.println("❌ ERROR AL ENVIAR CORREO DE INVITACIÓN:");
-            e.printStackTrace();
+        } catch (ResendException e) {
+            LOG.error("❌ ERROR AL ENVIAR CORREO DE INVITACIÓN:", e);
         }
     }
 
-    public void sendEmail(String toEmail, String subject, String body) {
+    private void sendEmail(String toEmail, String subject, String body) throws ResendException{
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom("equipoflomind@gmail.com");
         message.setTo(toEmail);
         message.setSubject(subject);
         message.setText(body);
 
-        mailSender.send(message);
+        CreateEmailOptions params = CreateEmailOptions.builder()
+                .from("equipoflomind@gmail.com")
+                .to(toEmail)
+                .text(body)
+                .subject(subject)
+                .build();
+        var data = resendApi.emails().send(params);
+        LOG.info("Email sent correctly. ID = {}", data.getId());
     }
 
 }

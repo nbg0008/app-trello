@@ -89,14 +89,6 @@ public class InvitationService {
 
         // El cuerpo del email se construye en el EmailService, solo necesitas pasar los parámetros:
         emailService.sendBoardInvitation(inviteeEmail, board.getName(), acceptanceLink);
-        String emailBody = String.format(
-                "Hola,\n\n" +
-                        "Has sido invitado al tablero '%s'. Para aceptar, haz clic en el siguiente <a href=\"%s\">enlace</a>\n\n" +
-                        "Gracias.",
-                board.getName(), acceptanceLink
-        );
-        emailService.sendEmail(inviteeEmail, subject, emailBody);
-
     }
     //-------------------------------------BUSCAR, VALIDAR Y ELIMINAR INVITACIÓN-----------------
 
