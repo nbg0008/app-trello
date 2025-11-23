@@ -33,7 +33,7 @@ public class SecurityConfiguration {
 
     private static final Logger LOG = LoggerFactory.getLogger(SecurityConfiguration.class);
 
-    @Value("app.frontend-base-url")
+    @Value("${app.frontend-base-url}")
     private String FRONTEND_BASE_URL;
 
     private final AuthenticationProvider authenticationProvider;
