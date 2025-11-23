@@ -17,3 +17,8 @@ management:
       probes:
         enabled: true
       show-details: always
+app:
+  base-url: http://${RAILWAY_PUBLIC_DOMAIN}:8080/trello/v1/
+  domain:
+    success-url: http://${WEB_TRELLO_URL}/suscripcion/exito
+    cancel-url: http://${WEB_TRELLO_URL}/suscripcion/fallo
