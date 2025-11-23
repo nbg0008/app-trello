@@ -2,9 +2,14 @@ package com.medac.trello.api.service;
 
 import com.medac.trello.api.exception.ResourceNotFoundException;
 import com.medac.trello.api.model.repository.UserRepository;
+import com.resend.Resend;
+import com.resend.core.exception.ResendException;
+import com.resend.services.emails.model.CreateEmailOptions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -15,22 +20,24 @@ import java.util.stream.IntStream;
 @Service
 public class PasswordResetService {
 
+    private static final Logger LOG = LoggerFactory.getLogger(PasswordResetService.class);
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final SecureRandom secureRandom = new SecureRandom();
-    private final JavaMailSender mailSender;
-
+    private final Resend resendApi;
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()";
     private static final int PASSWORD_LENGTH = 12;
 
     // CONSTRUCTOR
     @Autowired
-    public PasswordResetService(UserRepository userRepository, 
+    public PasswordResetService(UserRepository userRepository,
                                 PasswordEncoder passwordEncoder,
-                                JavaMailSender mailSender) {
+                                @Value("${app.resend-api-key}") String resendApiKey) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
-        this.mailSender = mailSender;
+        this.resendApi = new Resend(resendApiKey);
+
     }
     
     // Método para generar la contraseña
@@ -59,21 +66,33 @@ public class PasswordResetService {
     // MÉTODO PARA ENVIAR EL CORREO
     private void sendNewPasswordEmail(String toEmail, String newPassword) {
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom("equipoflomind@gmail.com"); 
-            message.setTo(toEmail);
-            message.setSubject("Trello App: Reseteo de Contraseña Exitoso");
-            message.setText("Hola,\n\n"
+            final var mensaje = "Hola,\n\n"
                     + "Tu contraseña ha sido reseteada exitosamente. Tu nueva contraseña es:\n\n"
                     + newPassword + "\n\n"
                     + "Por favor, inicia sesión con esta contraseña y cámbiala lo antes posible.\n\n"
                     + "Gracias,\n"
-                    + "El equipo de Trello.");
+                    + "El equipo de Trello.";
             
-            mailSender.send(message);
-        } catch (Exception e) {
-            System.err.println("Error al enviar el correo a " + toEmail + ": " + e.getMessage());
-            e.printStackTrace(); 
+            sendEmail(toEmail, "Trello App: Reseteo de Contraseña Exitoso", mensaje);
+        } catch (ResendException e) {
+            LOG.error("Error al enviar el correo a " + toEmail + ": ", e);
         }
+    }
+
+    private void sendEmail(String toEmail, String subject, String body) throws ResendException {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom("equipoflomind@gmail.com");
+        message.setTo(toEmail);
+        message.setSubject(subject);
+        message.setText(body);
+
+        CreateEmailOptions params = CreateEmailOptions.builder()
+                .from("equipoflomind@gmail.com")
+                .to(toEmail)
+                .text(body)
+                .subject(subject)
+                .build();
+        var data = resendApi.emails().send(params);
+        LOG.info("Email sent correctly. ID = {}", data.getId());
     }
 }
