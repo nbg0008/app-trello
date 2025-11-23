@@ -4,6 +4,7 @@ import com.medac.trello.api.resources.AuthEntryPointJwt;
 import com.medac.trello.api.resources.JwtAuthenticationFilter;
 import com.medac.trello.api.resources.TrelloApi;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -27,6 +28,9 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 
 @Configuration
 public class SecurityConfiguration {
+
+    @Value("app.frontend-base-url")
+    private String FRONTEND_BASE_URL;
 
     private final AuthenticationProvider authenticationProvider;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -63,7 +67,7 @@ public class SecurityConfiguration {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(List.of("http://localhost:3000"));
+        configuration.setAllowedOrigins(List.of(FRONTEND_BASE_URL));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

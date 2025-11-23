@@ -31,6 +31,7 @@ security:
     refresh-expiration-time: 2592000000
 app:
   base-url: http://localhost:8080/trello/v1/
+  frontend-base-url: http://localhost:3000
   domain:
     success-url: http://localhost:3000/suscripcion/exito
     cancel-url: http://localhost:3000/suscripcion/fallo
