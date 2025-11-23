@@ -6,3 +6,14 @@ spring:
     url: jdbc:${MYSQL_URL}
     username: ${MYSQLUSER}
     password: ${MYSQLPASSWORD}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+        exclude: env
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
