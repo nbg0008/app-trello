@@ -1,5 +1,5 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
-const API_BASE_URL = `http://${BASE_URL}` || "http://localhost:8080/trello/v1"; 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_URL = `http://${API_BASE_URL}` || "http://localhost:8080/trello/v1"; 
 
 const TOKEN_STORAGE_KEY = "token";
 const REFRESH_TOKEN_STORAGE_KEY = "refreshToken";

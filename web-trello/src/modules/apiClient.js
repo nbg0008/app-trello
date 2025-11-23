@@ -1,5 +1,5 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
-const API_BASE_URL = `http://${BASE_URL}` || "http://localhost:8080/trello/v1"; 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_URL = `http://${API_BASE_URL}` || "http://localhost:8080/trello/v1"; 
 
 export async function apiFetch(path, options = {}) {
   const token = localStorage.getItem("token");
@@ -10,7 +10,7 @@ export async function apiFetch(path, options = {}) {
   };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(`${API_BASE_URL}${path}`, {
+  const res = await fetch(`${API_URL}${path}`, {
     credentials: "include",
     ...options,
     headers,
