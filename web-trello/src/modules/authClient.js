@@ -1,5 +1,5 @@
 const API_URL = 
-  "http://${import.meta.env.VITE_API_BASE_URL}" || "http://localhost:8080/trello/v1";
+  "http://${process.env.VITE_API_BASE_URL}" || "http://localhost:8080/trello/v1";
 const TOKEN_STORAGE_KEY = "token";
 const REFRESH_TOKEN_STORAGE_KEY = "refreshToken";
 const SESSION_STORAGE_KEY = "trello_auth_session";
