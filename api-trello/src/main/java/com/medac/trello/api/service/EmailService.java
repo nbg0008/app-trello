@@ -59,15 +59,9 @@ public class EmailService {
         }
     }
 
-    private void sendEmail(String toEmail, String subject, String body) throws ResendException{
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom("equipoflomind@gmail.com");
-        message.setTo(toEmail);
-        message.setSubject(subject);
-        message.setText(body);
-
+    private void sendEmail(String toEmail, String subject, String body) throws ResendException {
         CreateEmailOptions params = CreateEmailOptions.builder()
-                .from("equipoflomind@gmail.com")
+                .from("equipoflomind@resend.dev")
                 .to(toEmail)
                 .text(body)
                 .subject(subject)
