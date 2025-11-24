@@ -9,6 +9,7 @@ spring:
 app:
   base-url: http://localhost:8080/trello/v1/
   frontend-base-url: http://localhost:3000
+  resend-api-key: no_disponible
   domain:
     success-url: http://localhost:3000/suscripcion/exito
     cancel-url: http://localhost:3000/suscripcion/fallo
