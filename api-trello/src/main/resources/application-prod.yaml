@@ -24,3 +24,8 @@ app:
   domain:
     success-url: https://${WEB_TRELLO_URL}/suscripcion/exito
     cancel-url: https://${WEB_TRELLO_URL}/suscripcion/fallo
+stripe:
+  api:
+    secretKey: ${STRIPE_API_KEY}
+  webhook:
+    secret: ${STRIPE_WEBHOOK_SECRET}

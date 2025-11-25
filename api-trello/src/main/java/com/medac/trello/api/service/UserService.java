@@ -82,6 +82,25 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    // ---------------------- FUNCIONALIDAD DE OAUTH2 ----------------------
+
+    public User findOrCreateOAuthUser(String email, String name) {
+        return userRepository.findByEmail(email)
+                .orElseGet(() -> {
+                    User newUser = new User(
+                            name,
+                            email,
+                            email,
+                            null
+                    );
+
+
+                    newUser.setVerified(true);
+
+                    return userRepository.save(newUser);
+                });
+    }
+
     // ---------------------- FUNCIONALIDAD DE EDICIÓN ----------------------
 
 

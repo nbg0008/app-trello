@@ -83,6 +83,13 @@
             <artifactId>resend-java</artifactId>
             <version>4.11.0</version>
         </dependency>
+
+        <!-- OAUTH de Google -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-client</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>
