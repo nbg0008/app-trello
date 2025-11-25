@@ -26,13 +26,17 @@ public record CardUpdatedNotificationDetails<T>(
     public String buildDescription() {
         return switch (whatChanged) {
             case NAME ->  String.format("La tarjeta %s ha cambiado el %s a %s",
-                    name, whatChanged.text, toValue.toString());
+                    name, whatChanged.text, val(toValue));
             case ORDER -> String.format("La tarjeta %s ha cambiado el %s de %s a %s",
-                    name, whatChanged.text, fromValue.toString(), toValue.toString());
+                    name, whatChanged.text, val(fromValue), val(toValue));
             case DESCRIPCION, STARTS_ON, EXPIRES_ON -> String.format("La tarjeta %s ha cambiado la %s de %s a %s",
-                    name, whatChanged.text, fromValue.toString(), toValue.toString());
+                    name, whatChanged.text, val(fromValue), val(toValue));
             case LISTA -> String.format("La tarjeta %s ha cambiado de %s de %s a %s",
-                    name, whatChanged.text, fromValue.toString(), toValue.toString());
+                    name, whatChanged.text, val(fromValue), val(toValue));
         };
+    }
+
+    private String val(Object value) {
+        return value == null ? "-" : value.toString();
     }
 }

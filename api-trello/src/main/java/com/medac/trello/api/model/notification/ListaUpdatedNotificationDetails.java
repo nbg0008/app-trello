@@ -21,9 +21,13 @@ public record ListaUpdatedNotificationDetails<T>(
     public String buildDescription() {
         return switch (whatChanged) {
             case NAME, ORDER -> String.format("La lista %s ha cambiado el %s de %s a %s",
-                    name, whatChanged.text, fromValue.toString(), toValue.toString());
+                    name, whatChanged.text, val(fromValue), val(toValue));
             case BOARD -> String.format("La lista %s ha cambiado de %s de %s a %s",
-                    name, whatChanged.text, fromValue.toString(), toValue.toString());
+                    name, whatChanged.text, val(fromValue), val(toValue));
         };
+    }
+
+    private String val(Object value) {
+        return value == null ? "-" : value.toString();
     }
 }

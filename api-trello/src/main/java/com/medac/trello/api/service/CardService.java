@@ -15,9 +15,11 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import static com.medac.trello.api.model.notification.CardUpdatedNotificationDetails.CardDetail.*;
 import static com.medac.trello.api.model.notification.ListaUpdatedNotificationDetails.ListaDetail.BOARD;
@@ -62,7 +64,7 @@ public class CardService {
 
         // 3. Guardar
         final var updatedCard = cardRepository.save(card);
-        lista.getBoard().getMembers().forEach(member ->
+        boardMembersWithOwner(lista.getBoard()).forEach(member ->
                 notificationService.addNotification(authenticatedUser.getId(), member.getId(),
                         new CardAddedNotificationDetails(
                                 updatedCard.getTitle(),
@@ -204,7 +206,7 @@ public class CardService {
                 cardExistente.getTitle(),
                 cardExistente.getCardOrder(),
                 updatedCard.getCardOrder(), ORDER));
-        updatedCard.getLista().getBoard().getMembers().forEach(member ->
+        boardMembersWithOwner(updatedCard.getLista().getBoard()).forEach(member ->
                 notificationService.addNotifications(usuario.getId(), member.getId(), notificaciones));
         return updatedCard;
     }
@@ -223,7 +225,7 @@ public class CardService {
         commentRepository.deleteAllByOwningCardId(idTarjeta);
 
         cardRepository.delete(cardExistente);
-        cardExistente.getLista().getBoard().getMembers().forEach(member ->
+        boardMembersWithOwner(cardExistente.getLista().getBoard()).forEach(member ->
                 notificationService.addNotification(user.getId(), member.getId(),
                         new CardDeletedNotificationDetails(
                                 cardExistente.getTitle(),
@@ -246,6 +248,17 @@ public class CardService {
             tarjetas.get(index).setCardOrder(index);
         }
         cardRepository.saveAll(tarjetas);
+    }
+
+    /**
+     * Devuelve todos los miembros del tablero, incluyendo al propietario como destinatario.
+     */
+    private Set<User> boardMembersWithOwner(Board board) {
+        Set<User> recipients = new HashSet<>(board.getMembers());
+        if (board.getCreatedBy() != null) {
+            recipients.add(board.getCreatedBy());
+        }
+        return recipients;
     }
 
     /**

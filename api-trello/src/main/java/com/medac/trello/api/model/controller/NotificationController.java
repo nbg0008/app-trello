@@ -30,7 +30,7 @@ public class NotificationController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity borrarNotificacion(@PathVariable("id") Long notificationId) {
-
-        return ResponseEntity.ok("Notificacion borrada");
+        notificationService.deleteNotification(notificationId);
+        return ResponseEntity.noContent().build();
     }
 }

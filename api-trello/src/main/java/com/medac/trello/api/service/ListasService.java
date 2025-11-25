@@ -165,6 +165,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set; // Importado para el nuevo método obtenerListasPorTablero
@@ -196,7 +197,7 @@ public class ListasService {
 
         // 3. Guardar la lista
         final var listaNueva =  listaRepository.save(lista);
-        board.getMembers().forEach(member ->
+        boardMembersWithOwner(board).forEach(member ->
                 notificationService.addNotification(authenticatedUser.getId(), member.getId(),
                         new ListaAddedNotificationDetails(
                                 listaNueva.getNombre(),
@@ -280,7 +281,7 @@ public class ListasService {
         }
 
         final var listaActualizada = listaRepository.save(listaExistente);
-        listaExistente.getBoard().getMembers().forEach(member ->
+        boardMembersWithOwner(listaExistente.getBoard()).forEach(member ->
                 notificationService.addNotifications(usuario.getId(), member.getId(), notificaciones));
 
         return listaActualizada;
@@ -291,12 +292,23 @@ public class ListasService {
         // Verificar si existe antes de intentar eliminar (opcional, pero buena práctica)
         final var listaParaBorrar = listaRepository.findById(idLista)
                 .orElseThrow(() -> new ResourceNotFoundException("Lista no encontrada con id: " + idLista));
-        listaParaBorrar.getBoard().getMembers().forEach(member ->
+        boardMembersWithOwner(listaParaBorrar.getBoard()).forEach(member ->
                 notificationService.addNotification(user.getId(), member.getId(),
                         new ListaDeletedNotificationDetails(
                                 listaParaBorrar.getNombre(),
                                 listaParaBorrar.getBoard().getName())
                 ));
         listaRepository.deleteById(idLista);
+    }
+
+    /**
+     * Devuelve todos los miembros del tablero, incluyendo al propietario como destinatario.
+     */
+    private Set<User> boardMembersWithOwner(Board board) {
+        Set<User> recipients = new HashSet<>(board.getMembers());
+        if (board.getCreatedBy() != null) {
+            recipients.add(board.getCreatedBy());
+        }
+        return recipients;
     }
 }
