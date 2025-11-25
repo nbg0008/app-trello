@@ -61,7 +61,7 @@ public class EmailService {
 
     private void sendEmail(String toEmail, String subject, String body) throws ResendException {
         CreateEmailOptions params = CreateEmailOptions.builder()
-                .from("equipoflomind@resend.dev")
+                .from("equipoflomind@flomind.es")
                 .to(toEmail)
                 .text(body)
                 .subject(subject)
