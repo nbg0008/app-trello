@@ -29,7 +29,7 @@ public class EmailService {
 
         try {
 
-            String confirmationUrl = String.format("http://%s/trello/v1/auth/confirm?token=%s", baseUrl, token);
+            String confirmationUrl = String.format("/auth/confirm?token=%s", baseUrl, token);
             String emailContent = String.format(
                     "¡Hola! Gracias por registrarte.\n\nPor favor, haz clic en el siguiente enlace:\n%s",
                     confirmationUrl
