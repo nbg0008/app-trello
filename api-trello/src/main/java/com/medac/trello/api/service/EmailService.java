@@ -15,9 +15,12 @@ public class EmailService {
     private static final Logger LOG = LoggerFactory.getLogger(EmailService.class);
 
     private final Resend resendApi;
+    private final String baseUrl;
 
-    public EmailService(@Value("${app.resend-api-key}") String resendApiKey) {
+    public EmailService(@Value("${app.resend-api-key}") String resendApiKey,
+                        @Value("${app.base-url}") String baseUrl) {
         this.resendApi = new Resend(resendApiKey);
+        this.baseUrl = baseUrl;
     }
 
 
@@ -26,7 +29,7 @@ public class EmailService {
 
         try {
 
-            String confirmationUrl = "http://localhost:8080/trello/v1/auth/confirm?token=" + token;
+            String confirmationUrl = String.format("http://%s/trello/v1/auth/confirm?token=%s", baseUrl, token);
             String emailContent = String.format(
                     "¡Hola! Gracias por registrarte.\n\nPor favor, haz clic en el siguiente enlace:\n%s",
                     confirmationUrl
