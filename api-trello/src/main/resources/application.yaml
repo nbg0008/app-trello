@@ -10,20 +10,11 @@ spring:
       mode: always
   datasource:
     driverClassName: com.mysql.cj.jdbc.Driver
-
 security:
   jwt:
     secret-key: 3cfa76ef14937c1c0ea519f8fc057a80fcd04a7420f8e8bcd0a7567c272e007b
     expiration-time: 3600000
     refresh-expiration-time: 2592000000
-app:
-  base-url: http://localhost:8080/trello/v1/
-  frontend-base-url: http://localhost:3000
-  domain:
-    success-url: http://localhost:3000/suscripcion/exito
-    cancel-url: http://localhost:3000/suscripcion/fallo
-
-
 stripe:
   api:
     secretKey: sk_test_TU_CLAVE_SECRETA_COMPLETA_AQUI

@@ -18,7 +18,7 @@ management:
         enabled: true
       show-details: always
 app:
-  base-url: http://${RAILWAY_PUBLIC_DOMAIN}:8080/trello/v1/
+  base-url: http://${RAILWAY_PUBLIC_DOMAIN}/trello/v1/
   frontend-base-url: https://${WEB_TRELLO_URL}
   resend-api-key: ${RESEND_API_KEY}
   domain:
