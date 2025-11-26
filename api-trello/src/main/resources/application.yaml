@@ -21,7 +21,7 @@ spring:
               - openid
               - profile
               - email
-            redirect-uri: "{app.baseUrl}/oauth2/code/{registrationId}"
+            redirect-uri: "{app.base-url}/oauth2/code/{registrationId}"
             client-name: Google
         provider:
           google:
@@ -39,5 +39,5 @@ stripe:
   api:
     secretKey: sk_test_TU_CLAVE_SECRETA_COMPLETA_AQUI
   webhook:
-    url: {app.baseUrl}/api/webhooks/stripe
+    url: {app.base-url}/api/webhooks/stripe
     secret: whsec_TEMPORAL_SOLO_PARA_ARRANCAR
