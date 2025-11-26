@@ -10,10 +10,10 @@ const MENU_OPTIONS = [
     hint: "En desarrollo",
   },
   { id: "edit-dates", label: "Editar fechas" },
-  { id: "move", label: "Mover" },
-  { id: "copy-card", label: "Copiar tarjeta" },
-  { id: "copy-link", label: "Copiar enlace" },
-  { id: "archive", label: "Archivar" },
+  { id: "move", label: "Mover", disabled: true, hint: "En desarrollo" },
+  { id: "copy-card", label: "Copiar tarjeta", disabled: true, hint: "En desarrollo" },
+  { id: "copy-link", label: "Copiar enlace", disabled: true, hint: "En desarrollo" },
+  { id: "archive", label: "Archivar", disabled: true, hint: "En desarrollo" },
   { id: "delete-card", label: "Eliminar", danger: true },
 ];
 

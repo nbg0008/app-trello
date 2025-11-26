@@ -158,6 +158,8 @@ import com.medac.trello.api.model.notification.ListaDeletedNotificationDetails;
 import com.medac.trello.api.model.notification.ListaUpdatedNotificationDetails;
 import com.medac.trello.api.model.notification.NotificationDetails;
 import com.medac.trello.api.model.repository.ListaRepository;
+import com.medac.trello.api.model.repository.CardRepository;
+import com.medac.trello.api.model.repository.HistorialMovimientoRepository;
 import com.medac.trello.api.model.Board;
 import com.medac.trello.api.model.repository.BoardRepository;
 import jakarta.transaction.Transactional;
@@ -181,6 +183,12 @@ public class ListasService {
 
     @Autowired
     private BoardRepository boardRepository;
+
+    @Autowired
+    private CardRepository cardRepository;
+
+    @Autowired
+    private HistorialMovimientoRepository historialMovimientoRepository;
 
     @Autowired
     private NotificationService notificationService;
@@ -288,16 +296,36 @@ public class ListasService {
     }
     // -----------------------D - EÑLLIMINAR LISTA-------------------------
     @Transactional
-    public void eliminarLista(User user, Long idLista) {
-        // Verificar si existe antes de intentar eliminar (opcional, pero buena práctica)
+        public void eliminarLista(User user, Long idLista) {
         final var listaParaBorrar = listaRepository.findById(idLista)
                 .orElseThrow(() -> new ResourceNotFoundException("Lista no encontrada con id: " + idLista));
-        boardMembersWithOwner(listaParaBorrar.getBoard()).forEach(member ->
-                notificationService.addNotification(user.getId(), member.getId(),
-                        new ListaDeletedNotificationDetails(
-                                listaParaBorrar.getNombre(),
-                                listaParaBorrar.getBoard().getName())
-                ));
+
+        // Eliminar historiales y tarjetas asociadas para evitar violaciones de FK
+        historialMovimientoRepository.deleteByListId(idLista);
+        historialMovimientoRepository.deleteAllByTarjeta_Lista_IdLista(idLista);
+        final var cards = cardRepository.findByLista_IdListaOrderByCardOrderAsc(idLista);
+        if (!cards.isEmpty()) {
+            final var cardIds = cards.stream().map(com.medac.trello.api.model.Card::getId).toList();
+            historialMovimientoRepository.deleteByCardIds(cardIds);
+            cardRepository.deleteAllById(cardIds);
+        }
+        cardRepository.deleteByListId(idLista);
+
+        Long actorId = (user != null) ? user.getId() : null;
+        if (actorId == null && listaParaBorrar.getBoard() != null && listaParaBorrar.getBoard().getCreatedBy() != null) {
+            actorId = listaParaBorrar.getBoard().getCreatedBy().getId();
+        }
+
+        if (actorId != null) {
+            final Long finalActorId = actorId;
+            boardMembersWithOwner(listaParaBorrar.getBoard()).forEach(member ->
+                    notificationService.addNotification(finalActorId, member.getId(),
+                            new ListaDeletedNotificationDetails(
+                                    listaParaBorrar.getNombre(),
+                                    listaParaBorrar.getBoard().getName())
+                    ));
+        }
+
         listaRepository.deleteById(idLista);
     }
 
@@ -312,3 +340,6 @@ public class ListasService {
         return recipients;
     }
 }
+
+
+

@@ -129,8 +129,8 @@ export default function BoardPage() {
   const [lists, setLists] = useState([]);
   console.log("Ejemplo de lista:", JSON.stringify(lists[0], null, 2));
   useEffect(() => {
-  console.log("Listas actuales:", lists.map(l => ({ nombre: l.nombreLista, id: l.idLista })));
-}, [lists]);
+    console.log("Listas actuales:", lists.map(l => ({ nombre: l.nombre, id: l.idLista })));
+  }, [lists]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -138,26 +138,10 @@ export default function BoardPage() {
   const [isAddingList, setIsAddingList] = useState(false);
   const [cardsByListId, setCardsByListId] = useState({});
   const LIST_IDS = {
-  PENDIENTE: lists.find((l) => l.nombreLista?.toLowerCase() === "pendiente")?.idLista,
-  HECHO: lists.find((l) => l.nombreLista?.toLowerCase() === "hecho")?.idLista,
-  FUERA_DE_PLAZO: lists.find((l) => l.nombreLista?.toLowerCase() === "fuera de plazo")?.idLista,
-};
-
-useEffect(() => {
-  const existe = lists.some(
-    (l) => l.nombreLista?.toLowerCase() === "fuera de plazo"
-  );
-
-  if (!existe) {
-    const nuevaLista = {
-      idLista: crypto.randomUUID(),
-      nombreLista: "Fuera de plazo",
-      tarjetas: [],
-    };
-    setLists((prev) => [...prev, nuevaLista]);
-  }
-
-}, [lists]);
+    PENDIENTE: lists.find((l) => l.nombre?.toLowerCase() === "pendiente")?.idLista,
+    HECHO: lists.find((l) => l.nombre?.toLowerCase() === "hecho")?.idLista,
+    PENDIENTES: lists.find((l) => l.nombre?.toLowerCase() === "pendientes")?.idLista,
+  };
   const [expiredCards, setExpiredCards] = useState([]);
   const [creatingCardFor, setCreatingCardFor] = useState(null);
   const [completedCards, setCompletedCards] = useState(() => new Set());
@@ -259,6 +243,26 @@ useEffect(() => {
   const pageBackgroundStyle = boardBackgroundToStyle(
     board?.background ?? backgroundOption.value
   );
+  const workspaceId = useMemo(() => {
+    const candidates = [
+      board?.workspaceId,
+      board?.idEspacio,
+      board?.workspace?.id,
+    ].filter((v) => v !== undefined && v !== null);
+    const extras = Array.isArray(board?.linkedWorkspaceIds)
+      ? board.linkedWorkspaceIds
+      : Array.isArray(board?.workspaceIds)
+        ? board.workspaceIds
+        : [];
+    const all = [...candidates, ...(extras || [])];
+    const parsed = all
+      .map((v) => {
+        const n = Number(v);
+        return Number.isNaN(n) ? null : n;
+      })
+      .find((n) => n !== null);
+    return parsed ?? null;
+  }, [board?.workspaceId, board?.idEspacio, board?.workspace?.id, board?.linkedWorkspaceIds, board?.workspaceIds, board]);
   const boardSurfaceClass = hasImageBackground
     ? "bg-transparent"
     : "bg-white/90";
@@ -511,8 +515,7 @@ useEffect(() => {
   if (!canEditContent || !lists.length) return;
 
   const now = new Date();
-  const fueraDePlazoList = lists.find(l => l.nombre === "Fuera de plazo");
-  if (!fueraDePlazoList) return;
+  const pendientesList = lists.find((l) => l.nombre?.toLowerCase() === "pendientes");
 
   const vencidas = [];
   const reactivadas = [];
@@ -523,9 +526,11 @@ useEffect(() => {
 
       const exp = new Date(card.expiresOn);
 
-      if (exp < now && listId !== String(fueraDePlazoList.idLista)) {
+      const isPendientes = pendientesList && listId === String(pendientesList.idLista);
+
+      if (exp < now && !isPendientes) {
         vencidas.push({ ...card, listId });
-      } else if (exp >= now && listId === String(fueraDePlazoList.idLista)) {
+      } else if (exp >= now && isPendientes) {
         reactivadas.push({ ...card, listId });
       }
     });
@@ -534,14 +539,14 @@ useEffect(() => {
   if (vencidas.length === 0 && reactivadas.length === 0) return;
 
   (async () => {
-    let targetList = fueraDePlazoList;
+    let targetList = pendientesList;
 
     if (!targetList) {
       try {
         const nueva = await apiFetch(`/tableros/${boardId}/listas`, {
           method: "POST",
           body: JSON.stringify({
-            nombre: "Fuera de plazo",
+            nombre: "Pendientes",
             orden: lists.length,
           }),
         });
@@ -549,38 +554,38 @@ useEffect(() => {
         setLists(prev => [...prev, nueva]);
         setCardsByListId(prev => ({ ...prev, [String(nueva.idLista)]: [] }));
       } catch (err) {
-        console.error("Error creando lista 'Fuera de plazo':", err);
+        console.error("Error creando lista 'Pendientes':", err);
         return;
       }
     }
 
-    const fueraDePlazoId = String(targetList.idLista);
+    const pendientesId = String(targetList.idLista);
     const updated = { ...cardsByListId };
 
     for (const card of vencidas) {
       try {
-        await updateCard(card.id, { idLista: Number(fueraDePlazoId) });
+        await updateCard(card.id, { idLista: Number(pendientesId) });
         updated[card.listId] = (updated[card.listId] || []).filter(
           c => c.id !== card.id
         );
-        updated[fueraDePlazoId] = [
-          ...(updated[fueraDePlazoId] || []),
-          { ...card, listId: fueraDePlazoId },
+        updated[pendientesId] = [
+          ...(updated[pendientesId] || []),
+          { ...card, listId: pendientesId },
         ];
       } catch (err) {
-        console.error(`⚠️ Error moviendo tarjeta ${card.id}:`, err);
+                console.error(`Error moviendo tarjeta ${card.id}:`, err);
       }
     }
 
     for (const card of reactivadas) {
-      const destino = lists.find(
-        l => l.nombre === "En curso" || l.orden === 0
-      );
+      const destino =
+        lists.find((l) => l.nombre?.toLowerCase() === "en curso") ||
+        lists.find((l) => l.orden === 0 && l.idLista !== targetList?.idLista);
       if (!destino) continue;
 
       try {
         await updateCard(card.id, { idLista: Number(destino.idLista) });
-        updated[fueraDePlazoId] = (updated[fueraDePlazoId] || []).filter(
+        updated[pendientesId] = (updated[pendientesId] || []).filter(
           c => c.id !== card.id
         );
         updated[String(destino.idLista)] = [
@@ -588,7 +593,7 @@ useEffect(() => {
           { ...card, listId: String(destino.idLista) },
         ];
       } catch (err) {
-        console.error(`⚠️ Error moviendo tarjeta ${card.id}:`, err);
+                console.error(`Error moviendo tarjeta ${card.id}:`, err);
       }
     }
 
@@ -635,82 +640,104 @@ useEffect(() => {
   };
 
   const handleToggleCardComplete = async (cardId) => {
-  if (!canEditContent) return;
-  setCompletedCards((prev) => {
+    if (!canEditContent) return;
 
-let hechoList = lists.find((l) => (l.nombre || "").toLowerCase().trim() === "hecho");
-
-if (!hechoList) {
-  const nuevaHecho = {
-    idLista: crypto.randomUUID(),
-    nombre: "Hecho",
-    orden: lists.length,
-    idTablero: lists[0]?.idTablero || 1,
-    tarjetas: [],
-  };
-
-  setLists((prevLists) => {
-    const updated = [...prevLists, nuevaHecho];
-    console.log("Lista 'Hecho' creada y añadida:", updated);
-    return updated;
-  });
-
-  hechoList = nuevaHecho;
-}
-
-    const next = new Set(prev);
-    if (next.has(cardId)) next.delete(cardId);
-    else next.add(cardId);
-    return next;
-  });
-
-  let currentListId = null;
-  let card = null;
-  for (const [listId, cards] of Object.entries(cardsByListId)) {
-    const found = cards.find((c) => c.id === cardId);
-    if (found) {
-      currentListId = listId;
-      card = found;
-      break;
+    // Localiza la tarjeta y su lista actual
+    let currentListId = null;
+    let card = null;
+    for (const [listId, cards] of Object.entries(cardsByListId)) {
+      const found = cards.find((c) => c.id === cardId);
+      if (found) {
+        currentListId = listId;
+        card = found;
+        break;
+      }
     }
-  }
-  if (!card || !currentListId) return;
+    if (!card || !currentListId) return;
 
-  const hechoList = lists.find((l) => l.nombre?.toLowerCase() === "hecho");
-  const enCursoList =
-    lists.find((l) => l.nombre?.toLowerCase() === "en curso") || lists[0];
+    const hechoList = lists.find((l) => l.nombre?.toLowerCase() === "hecho");
+    const enCursoList =
+      lists.find((l) => l.nombre?.toLowerCase() === "en curso") ||
+      lists.find(
+        (l) =>
+          l.nombre?.toLowerCase() !== "hecho" &&
+          l.nombre?.toLowerCase() !== "pendientes"
+      ) ||
+      lists[0];
+    const pendientesList = lists.find(
+      (l) => l.nombre?.toLowerCase() === "pendientes"
+    );
 
-  if (!hechoList || !enCursoList) return;
+    if (!hechoList) return;
 
-  const hechoId = String(hechoList.idLista);
-  const enCursoId = String(enCursoList.idLista);
+    const hechoId = String(hechoList.idLista);
+    const enCursoId = enCursoList ? String(enCursoList.idLista) : null;
+    const pendientesId = pendientesList ? String(pendientesList.idLista) : null;
 
-  const isCompleted = !completedCards.has(cardId);
+    const isCurrentlyCompleted = completedCards.has(cardId);
+    const nextIsCompleted = !isCurrentlyCompleted;
 
-  const targetListId = isCompleted ? hechoId : enCursoId;
-  if (String(currentListId) === targetListId) return;
+    const expiresOn = card.expiresOn ? new Date(card.expiresOn) : null;
+    const isExpired = expiresOn && expiresOn < new Date();
 
-  try {
-    await updateCard(card.id, { idLista: Number(targetListId) });
+    let targetListId = nextIsCompleted ? hechoId : (enCursoId ?? currentListId);
+    if (!nextIsCompleted && isExpired && pendientesId) {
+      targetListId = pendientesId;
+    }
 
-    setCardsByListId((prev) => {
-      const next = structuredClone(prev);
-
-      next[currentListId] = (next[currentListId] || []).filter(
-        (c) => c.id !== card.id
-      );
-
-      next[targetListId] = [
-        ...(next[targetListId] || []),
-        { ...card, listId: targetListId },
-      ];
-
+    // Optimista: actualiza UI primero
+    setCompletedCards((prev) => {
+      const next = new Set(prev);
+      nextIsCompleted ? next.add(cardId) : next.delete(cardId);
       return next;
     });
-  } catch (err) {
-    console.error("Error moviendo tarjeta:", err);
-  }
-};
+
+    setCardsByListId((prev) => {
+      const sourceCards = prev[currentListId] || [];
+      const destCards = prev[targetListId] || [];
+
+      return {
+        ...prev,
+        [currentListId]: sourceCards.filter((c) => c.id !== card.id),
+        [targetListId]: [
+          ...destCards.filter((c) => c.id !== card.id),
+          { ...card, listId: targetListId },
+        ],
+      };
+    });
+
+    try {
+      await updateCard(card.id, { idLista: Number(targetListId) });
+    } catch (err) {
+      console.error(`Error moviendo tarjeta ${card.id}:`, err);
+    }
+  };
+
+  const handleDeleteList = async (listId) => {
+    if (!canEditContent || !listId) return;
+    const listKey = String(listId);
+
+    // Optimista: quitamos la lista y sus tarjetas
+    const prevLists = lists;
+    const prevCards = cardsByListId;
+
+    setLists((current) => current.filter((l) => String(l.idLista) !== listKey));
+    setCardsByListId((current) => {
+      const next = { ...current };
+      delete next[listKey];
+      return next;
+    });
+
+    try {
+      await apiFetch(`/tableros/listas/${listId}`, { method: "DELETE" });
+    } catch (err) {
+      console.error("Error eliminando lista:", err);
+      // Revertir si falla
+      setLists(prevLists);
+      setCardsByListId(prevCards);
+      alert("No se pudo eliminar la lista. Inténtalo de nuevo.");
+    }
+  };
 
   const closeLabelEditor = useCallback(() => {
     setLabelEditorState({
@@ -785,11 +812,11 @@ const mutateCardDates = useCallback((cardId, listKey, startsOn, expiresOn) => {
     const isExpired = exp && exp < now;
 
     // Listas
-    const fueraDePlazo = lists.find(l => l.nombre?.toLowerCase() === "fuera de plazo");
+    const listaPendientes = lists.find(l => l.nombre?.toLowerCase() === "pendientes");
     const hechoList = lists.find(l => l.nombre?.toLowerCase() === "hecho");
     const enCursoList = lists.find(l => l.nombre?.toLowerCase() === "en curso") || lists[0];
 
-    const fueraId = fueraDePlazo ? String(fueraDePlazo.idLista) : null;
+    const fueraId = listaPendientes ? String(listaPendientes.idLista) : null;
     const hechoId = hechoList ? String(hechoList.idLista) : null;
     const enCursoId = String(enCursoList.idLista);
     const isInFuera = fueraId && sourceListKey === fueraId;
@@ -1691,7 +1718,14 @@ const mutateCardDates = useCallback((cardId, listKey, startsOn, expiresOn) => {
           </p>
           <p className="font-mono text-sm">{error}</p>
           <div className="mt-4 flex justify-end">
-            <Button onClick={() => navigate("/dashboard")} variant="secondary">
+            <Button
+              onClick={() =>
+                workspaceId
+                  ? navigate(`/espacios-trabajo/${workspaceId}`)
+                  : navigate("/dashboard")
+              }
+              variant="secondary"
+            >
               Volver a tableros
             </Button>
           </div>
@@ -1820,7 +1854,11 @@ const mutateCardDates = useCallback((cardId, listKey, startsOn, expiresOn) => {
                 <div className="flex items-center gap-3">
                   <Button
                     variant="primary"
-                    onClick={() => navigate("/dashboard")}
+                    onClick={() =>
+                      workspaceId
+                        ? navigate(`/espacios-trabajo/${workspaceId}`)
+                        : navigate("/dashboard")
+                    }
                     className="rounded-full px-5 py-2 text-sm shadow-md"
                   >
                     Volver a tableros
@@ -1875,16 +1913,17 @@ const mutateCardDates = useCallback((cardId, listKey, startsOn, expiresOn) => {
                     <ListColumn
                       key={list.idLista}
                       list={list}
-                      cards={cardsByListId[String(list.idLista)] || []}
-                      onAddCard={handleCreateCard}
-                      isSavingCard={creatingCardFor === list.idLista}
-                      completedCards={completedCards}
-                      onToggleCardComplete={handleToggleCardComplete}
-                      onCardMenuAction={handleCardMenuAction}
-                      canEditContent={canEditContent}
-                      enableDrag={canEditContent}
-                    />
-                  ))}
+                  cards={cardsByListId[String(list.idLista)] || []}
+                  onAddCard={handleCreateCard}
+                  isSavingCard={creatingCardFor === list.idLista}
+                  completedCards={completedCards}
+                  onToggleCardComplete={handleToggleCardComplete}
+                  onCardMenuAction={handleCardMenuAction}
+                  onDeleteList={(id) => handleDeleteList(id)}
+                  canEditContent={canEditContent}
+                  enableDrag={canEditContent}
+                />
+              ))}
 
                   {canEditContent ? (
                     <NewListColumn
@@ -3316,3 +3355,5 @@ function MembersModal({
     </div>
   );
 }
+
+

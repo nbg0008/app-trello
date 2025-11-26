@@ -54,7 +54,7 @@ export default function Login() {
         src={LOGO_SRC}
         alt="Logo"
         className="absolute left-1/2 -translate-x-1/2 select-none drop-shadow-2xl z-50 pointer-events-none"
-        style={{ top: `calc(50vh - 28px)` }}
+        style={{ top: `calc(40vh - 28px)` }}
         initial={{ scale: startScale, y: "-50vh", opacity: 1 }}
         animate={{ scale: endScale, y: `calc(${endTop}px - 50vh)`, opacity: 1 }}
         transition={{ duration, ease: [0.22, 1, 0.36, 1] }}

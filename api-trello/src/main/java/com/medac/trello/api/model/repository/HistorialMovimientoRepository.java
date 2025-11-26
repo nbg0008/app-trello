@@ -2,15 +2,25 @@ package com.medac.trello.api.model.repository;
 
 import com.medac.trello.api.model.HistorialMovimiento;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 
-// Usamos JpaRepository para obtener todas las funcionalidades CRUD y de paginación.
 @Repository
 public interface HistorialMovimientoRepository extends JpaRepository<HistorialMovimiento, Long> {
 
-    // Spring Data JPA crea la implementación automáticamente.
-    // No se necesitan métodos adicionales por ahora, ya que el CardService solo hace un .save()
     void deleteAllByTarjetaIdIn(Collection<Long> cardIds);
+
+    void deleteAllByTarjeta_Lista_IdLista(Long listId);
+
+    @Modifying
+    @Query("delete from HistorialMovimiento hm where hm.tarjeta.lista.idLista = :listId")
+    void deleteByListId(@Param("listId") Long listId);
+
+    @Modifying
+    @Query("delete from HistorialMovimiento hm where hm.tarjeta.id in :cardIds")
+    void deleteByCardIds(@Param("cardIds") Collection<Long> cardIds);
 }

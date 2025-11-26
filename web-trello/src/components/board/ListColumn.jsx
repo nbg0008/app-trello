@@ -7,7 +7,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import Button from "../ui/Button.jsx";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import CardItem from "./CardItem.jsx";
 
 const LIST_SORTABLE_PREFIX = "list-";
@@ -22,6 +22,7 @@ export default function ListColumn({
   completedCards,
   onToggleCardComplete,
   onCardMenuAction,
+  onDeleteList,
   canEditContent = true,
   enableDrag = true,
 }) {
@@ -110,6 +111,20 @@ export default function ListColumn({
         >
           {list.nombre}
         </h4>
+
+        {canEditContent ? (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onDeleteList?.(list.idLista);
+            }}
+            className="rounded-full p-1 text-neutral-400 transition hover:text-red-500 hover:bg-red-50"
+            aria-label={`Eliminar lista ${list.nombre ?? ""}`.trim()}
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        ) : null}
       </header>
 
       <SortableContext

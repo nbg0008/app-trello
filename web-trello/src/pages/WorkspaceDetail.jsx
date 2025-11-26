@@ -188,8 +188,8 @@ export default function WorkspaceDetail() {
         title={workspaceName}
         actions={
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => navigate(-1)}>
-              ← Volver
+            <Button variant="secondary" onClick={() => navigate("/dashboard")}>
+              ← Volver al dashboard
             </Button>
             <Button
               variant="primary"

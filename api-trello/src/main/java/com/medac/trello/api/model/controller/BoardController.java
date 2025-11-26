@@ -16,12 +16,14 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.MailException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Set;
+import java.util.Map;
 
 import static java.util.stream.Collectors.toSet;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -149,48 +151,42 @@ public class BoardController implements TrelloApi {
 
 
     @PostMapping("/{boardId}/invitaciones")
-    public ResponseEntity<String> inviteUserToBoard(
+    public ResponseEntity<Map<String, String>> inviteUserToBoard(
             @PathVariable Long boardId,
             @Valid @RequestBody InviteRequestDTO request,
             @AuthenticationPrincipal User authenticatedUser) {
 
-        try {
-            // Obtener el ID del usuario que invita (inviter)
-            Long inviterId = authenticatedUser.getId();
+    try {
+        Long inviterId = authenticatedUser.getId();
+        Board board = boardService.obtenerBoardPorId(boardId);
 
-            // RECUPERAR EL OBJETO BOARD COMPLETO (NECESARIO PARA EL SERVICE)
-            Board board = boardService.obtenerBoardPorId(boardId);
-
-            // Validar si el usuario autenticado tiene permisos para invitar
-            if (!board.getOwnerId().equals(authenticatedUser.getId()) && !board.getMembers().contains(authenticatedUser)) {
-                throw new AccessDeniedException("Solo el dueÃ±o o miembros del tablero pueden invitar.");
-            }
-
-            // Llamar al servicio con el objeto Board
-            invitationService.createAndSendInvitation(
-                    board,
-                    request.email(),
-                    inviterId,
-                    request.role()
-            );
-
-            return ResponseEntity.ok("InvitaciÃ³n enviada con Ã©xito a " + request.email());
-
-        } catch (AccessDeniedException e) {
-            return status(HttpStatus.FORBIDDEN).body(e.getMessage());
-        } catch (ResourceNotFoundException e) {
-            return status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        } catch (IllegalArgumentException e) {
-            return status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        } catch (Exception e) {
-            // Esto capturarÃ¡ MailException o cualquier otro error no manejado.
-            return status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error interno al procesar la invitaciÃ³n: " + e.getMessage());
+        if (!board.getOwnerId().equals(authenticatedUser.getId()) && !board.getMembers().contains(authenticatedUser)) {
+            throw new AccessDeniedException("Solo el dueno o miembros del tablero pueden invitar.");
         }
+
+        invitationService.createAndSendInvitation(
+                board,
+                request.email(),
+                inviterId,
+                request.role()
+        );
+
+        return ResponseEntity.ok(Map.of("message", "Invitacion enviada con exito a " + request.email()));
+
+    } catch (AccessDeniedException e) {
+        return status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+    } catch (ResourceNotFoundException e) {
+        return status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+    } catch (IllegalArgumentException e) {
+        return status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
+    } catch (MailException e) {
+        return ResponseEntity.ok(Map.of("message", "Invitacion creada, pero el correo no pudo enviarse: " + e.getMessage()));
+    } catch (Exception e) {
+        return status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Error interno al procesar la invitacion: " + e.getMessage()));
     }
+}
 
-    //---------------------------------ENDPOINT PARA VER LAS INNVITACIONES-------------------------
-
-    @GetMapping("/invitations/received")
+@GetMapping("/invitations/received")
     public ResponseEntity<List<Invitation>> getReceivedInvitations(
             @AuthenticationPrincipal User authenticatedUser) { // Obtiene el usuario autenticado del JWT
 

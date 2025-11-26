@@ -65,6 +65,20 @@ export default function NotificationBell() {
     }
   };
 
+  const onDeleteAll = async () => {
+    try {
+      setLoading(true);
+      // borrar local y luego refrescar
+      const ids = items.map((n) => n.id);
+      await Promise.all(ids.map((id) => deleteNotification(id)));
+      setItems([]);
+    } catch (err) {
+      setError(err?.message || "No se pudieron borrar las notificaciones");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="relative" ref={ref}>
       <button
@@ -94,12 +108,21 @@ export default function NotificationBell() {
                 {loading ? "Cargando..." : `${items.length} pendientes`}
               </p>
             </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={onDeleteAll}
+                disabled={loading || items.length === 0}
+                className="text-xs font-medium text-red-500 hover:text-red-600 disabled:opacity-50"
+              >
+                Borrar todo
+              </button>
             <button
               onClick={loadNotifications}
               className="text-xs font-medium text-[var(--color-brand-600)] hover:text-[var(--color-brand-700)] dark:text-[var(--color-brand-600)]"
             >
               Actualizar
             </button>
+            </div>
           </div>
 
           <div className="max-h-[60vh] overflow-y-auto p-3 space-y-3">
