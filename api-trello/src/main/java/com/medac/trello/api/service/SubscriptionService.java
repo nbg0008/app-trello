@@ -28,7 +28,7 @@ public class SubscriptionService {
     }
 
     @Transactional
-    public Subscription activateSubscription(User user, String planName, LocalDate expirationDate) {
+    public Subscription activateSubscription(User user, String stripeSubscriptionId) {
 
         // 1. Desactivar suscripciones anteriores (Crucial para mantener la coherencia)
         subscriptionRepository.setInactiveByUserId(user.getId());
@@ -36,11 +36,16 @@ public class SubscriptionService {
         // 2. Crear y guardar la nueva suscripción activa.
         Subscription newSubscription = new Subscription(
                 user,
-                planName,
+                stripeSubscriptionId,
                 LocalDate.now(), // La fecha de inicio es hoy
-                expirationDate,
+                LocalDate.now().plusDays(100),
                 true // Marcar como activa
         );
         return subscriptionRepository.save(newSubscription);
+    }
+    @Transactional
+    public void deactivateSubscription(User user) {
+        subscriptionRepository.setInactiveByUserId(user.getId());
+        System.out.println("Suscripción desactivada en BD para el usuario ID: " + user.getId());
     }
 }

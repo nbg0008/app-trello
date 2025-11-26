@@ -3,7 +3,10 @@ package com.medac.trello.api.service;
 import com.medac.trello.api.model.User;
 import com.medac.trello.api.model.repository.UserRepository; // Necesario para guardar el Stripe ID
 import com.stripe.Stripe;
+import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
+import com.stripe.model.Event;
+import com.stripe.model.StripeObject;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.CustomerCreateParams;
 import com.stripe.param.checkout.SessionCreateParams;
@@ -27,8 +30,10 @@ public class StripeService {
     private String cancelUrl;
 
     private final UserRepository userRepository;
+    private final SubscriptionService subscriptionService;
 
-    public StripeService(UserRepository userRepository) {
+    public StripeService(SubscriptionService subscriptionService, UserRepository userRepository) {
+        this.subscriptionService = subscriptionService;
         this.userRepository = userRepository;
     }
 
@@ -84,11 +89,90 @@ public class StripeService {
         return session.getUrl();
     }
 
+    public void handleWebhookEvent(Event event) throws StripeException {
+        // La clave API ya está configurada en @PostConstruct
+
+        Optional<StripeObject> optionalStripeObject = event.getDataObjectDeserializer().getObject();
+        if (!optionalStripeObject.isPresent()) {
+            throw new IllegalStateException("Cuerpo del evento de Stripe vacío.");
+        }
+        StripeObject stripeObject = optionalStripeObject.get();
+
+        switch (event.getType()) {
+            case "checkout.session.completed":
+                // Este es el evento clave: el cliente pagó y se creó una suscripción.
+                Session session = (Session) stripeObject;
+                handleCheckoutSessionCompleted(session);
+                break;
+
+            case "customer.subscription.deleted":
+                // La suscripción fue cancelada por el cliente o Stripe.
+                Subscription subscriptionDeleted = (Subscription) stripeObject;
+                handleSubscriptionDeleted(subscriptionDeleted);
+                break;
+
+            case "invoice.payment_failed":
+
+                break;
+
+            default:
+
+                System.out.println("Unhandled event type: " + event.getType());
+                break;
+        }
+    }
+
+    // Lógica específica para cuando la sesión de checkout se completa
+    private void handleCheckoutSessionCompleted(Session session) throws StripeException {
+        String userIdStr = session.getClientReferenceId();
+
+        String subscriptionId = session.getSubscription();
+
+        if (userIdStr != null && subscriptionId != null) {
+
+            Optional<User> userOptional = userRepository.findById(Long.parseLong(userIdStr));
+
+            if (userOptional.isPresent()) {
+                User user = userOptional.get();
+
+                // 2. Activar la suscripción en tu base de datos y guardar el Subscription ID
+                subscriptionService.activateSubscription(user, subscriptionId);
+
+                System.out.println("Suscripción activada para el usuario: " + userIdStr +
+                        " con Subscription ID: " + subscriptionId);
+            } else {
+                System.err.println("Error: Usuario no encontrado para el ID: " + userIdStr);
+            }
+        }
+    }
+
+    // Lógica específica para cuando se cancela una suscripción
+    private void handleSubscriptionDeleted(Subscription subscription) {
+        String customerId = subscription.getCustomer();
+
+        // 1. Encontrar el usuario por su Customer ID de Stripe
+        Optional<User> userOptional = userRepository.findByStripeCustomerId(customerId);
+
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+
+            // 2. Desactivar la suscripción del usuario en tu base de datos
+            subscriptionService.deactivateSubscription(user);
+
+            System.out.println("Suscripción desactivada para el usuario (Stripe Customer ID): " + customerId);
+        } else {
+            System.err.println("Error: Usuario no encontrado para el Stripe Customer ID: " + customerId);
+        }
+    }
+
+    // Métodos de repositorio existentes
     public Optional<User> findUserByStripeCustomerId(String stripeCustomerId) {
         return userRepository.findByStripeCustomerId(stripeCustomerId);
     }
 
-    public Subscription retrieveSubscription(String subscriptionId) throws Exception {
+    public Subscription retrieveSubscription(String subscriptionId) throws StripeException {
         return Subscription.retrieve(subscriptionId);
     }
 }
+
+

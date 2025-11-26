@@ -56,7 +56,38 @@ public class SubscriptionController {
         }
     }
 
-    // --- ENDPOINT PARA VERIFICAR EL ESTADO (PERMANECE IGUAL) ---
+    // --- ENDPOINT QUE LLAMA STRIPE (EL WEBHOOK) ---
+
+    @PostMapping("/webhook")
+    public ResponseEntity<String> handleStripeWebhook(
+            @RequestBody String payload,
+            @RequestHeader("Stripe-Signature") String sigHeader
+    ) {
+        Event event;
+
+        // 1. Verificación de la firma de seguridad del Webhook
+        try {
+            event = Webhook.constructEvent(
+                    payload, sigHeader, webhookSecret
+            );
+        } catch (SignatureVerificationException e) {
+            // Error en la firma: rechazar el request por seguridad
+            return new ResponseEntity<>("Invalid signature", HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            // Otro error al construir el evento
+            return new ResponseEntity<>("Webhook processing failed", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        try {
+            stripeService.handleWebhookEvent(event);
+        } catch (Exception e) {
+
+            System.err.println("Error processing Stripe event: " + e.getMessage());
+        }
+
+        return new ResponseEntity<>("Received", HttpStatus.OK);
+    }
+
+    // --- ENDPOINT PARA VERIFICAR EL ESTADO
     @GetMapping("/status")
     public ResponseEntity<Boolean> getSubscriptionStatus(@AuthenticationPrincipal User user) {
         boolean status = subscriptionService.isUserSubscribed(user);

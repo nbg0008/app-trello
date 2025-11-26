@@ -56,19 +56,35 @@ public class StripeWebhookController {
 
             Session session = (Session) dataObject;
 
-            // Obtener IDs y Plan
+            // El ID de Suscripción es crucial y se usa para activar la suscripción en la BD.
+            String subscriptionId = session.getSubscription();
             String customerId = session.getCustomer();
-            String planId = session.getMetadata().get("planId"); // Asume que guardas el planId en metadata
+
+            // Si el ID de suscripción no está presente, algo falló en Stripe.
+            if (subscriptionId == null) {
+                System.err.println("Evento checkout.session.completed sin subscriptionId.");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Missing subscription ID.");
+            }
 
             // Buscar usuario por Stripe ID
             User user = userService.findByStripeCustomerId(customerId)
                     .orElseThrow(() -> new RuntimeException("Usuario no encontrado para Stripe Customer ID: " + customerId));
 
-            // Simulación de fecha de expiración
-            LocalDate expirationDate = LocalDate.now().plusMonths(1);
+            // ACTIVACIÓN REAL DE LA SUSCRIPCIÓN (Usando la firma actualizada de 2 argumentos)
+            subscriptionService.activateSubscription(user, subscriptionId);
 
-            // ACTIVACIÓN REAL DE LA SUSCRIPCIÓN
-            subscriptionService.activateSubscription(user, planId, expirationDate);
+            System.out.println("Suscripción activada via Webhook para el Customer ID: " + customerId);
+
+        } else if ("customer.subscription.deleted".equals(event.getType())) {
+            // Manejar la cancelación o expiración de la suscripción
+            // Nota: En un entorno real, se usaría un try-catch para manejar el casting seguro
+            com.stripe.model.Subscription subscription = (com.stripe.model.Subscription) dataObject;
+            String customerId = subscription.getCustomer();
+
+            userService.findByStripeCustomerId(customerId).ifPresent(user -> {
+                subscriptionService.deactivateSubscription(user);
+                System.out.println("Suscripción desactivada via Webhook para el Customer ID: " + customerId);
+            });
         }
 
         //  RETORNO DE CÓDIGO 200 (Importante: Indica a Stripe que el evento fue recibido correctamente)
