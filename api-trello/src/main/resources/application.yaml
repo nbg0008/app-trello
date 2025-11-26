@@ -36,8 +36,5 @@ security:
     expiration-time: 3600000
     refresh-expiration-time: 2592000000
 stripe:
-  api:
-    secretKey: sk_test_TU_CLAVE_SECRETA_COMPLETA_AQUI
   webhook:
     url: ${app.base-url}/api/webhooks/stripe
-    secret: whsec_TEMPORAL_SOLO_PARA_ARRANCAR

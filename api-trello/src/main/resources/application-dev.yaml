@@ -13,3 +13,8 @@ app:
   domain:
     success-url: http://localhost:3000/suscripcion/exito
     cancel-url: http://localhost:3000/suscripcion/fallo
+stripe:
+  api:
+    secretKey: sk_test_TU_CLAVE_SECRETA_COMPLETA_AQUI
+  webhook:
+    secret: whsec_TEMPORAL_SOLO_PARA_ARRANCAR
