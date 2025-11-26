@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../modules/auth/AuthContext.jsx";
 import logo from "../../assets/Logo dashboard2.png";
 import BotonModo from "../ui/BotonModo.jsx";
+import NotificationBell from "./NotificationBell.jsx";
 
 
 export default function PageShell({ title, actions, children }) {
@@ -31,7 +32,7 @@ function Header() {
   const navigate = useNavigate();
   return (
   <header className="sticky top-0 z-40 bg-brand-600 text-white shadow-lg">
-    <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
+  <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
       <div className="flex items-center gap-3">
         <span className="text-lg font-semibold tracking-wide">
           <img src={logo} alt="flomind" className="h-11 w-auto" />
@@ -50,7 +51,10 @@ function Header() {
         />
       </div>
 
-      <AvatarArea />
+      <div className="flex items-center gap-4">
+        <NotificationBell />
+        <AvatarArea />
+      </div>
     </div>
   </header>
 );

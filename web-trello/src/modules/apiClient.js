@@ -103,3 +103,14 @@ export function removeBoardMember(boardId, memberId) {
     method: "DELETE",
   });
 }
+
+// Notifications
+export function fetchNotifications() {
+  return apiFetch("/notificaciones");
+}
+
+export function deleteNotification(notificationId) {
+  return apiFetch(`/notificaciones/${notificationId}`, {
+    method: "DELETE",
+  });
+}

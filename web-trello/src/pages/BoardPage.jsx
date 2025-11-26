@@ -28,6 +28,7 @@ import {
 } from "../constants/boardBackgrounds.js";
 import BotonModo from "../components/ui/BotonModo.jsx";
 import CardItem from "../components/board/CardItem.jsx";
+import NotificationBell from "../components/layout/NotificationBell.jsx";
 
 
 const SCROLLBAR_STYLE = `
@@ -2108,7 +2109,10 @@ function BoardTopNav() {
           />
         </div>
 
-        <AvatarArea />
+        <div className="flex items-center gap-4">
+          <NotificationBell />
+          <AvatarArea />
+        </div>
       </div>
     </header>
   );

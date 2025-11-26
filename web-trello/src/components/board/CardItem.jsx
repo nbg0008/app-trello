@@ -123,7 +123,7 @@ export default function CardItem({
   ref={setRefs}
   data-draggable="card"
   style={style}
-  className={`group relative overflow-hidden rounded-2xl border 
+  className={`group relative overflow-hidden rounded-2xl border border-transparent 
     text-gray-800 dark:text-gray-100 px-3 py-3 shadow-md transition
     hover:border-[#4b3acd]/40 hover:shadow-lg
     ${isDragging ? "border-[#7f6dff]/60 shadow-[#6b4dff]/50" : ""}
