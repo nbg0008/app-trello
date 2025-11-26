@@ -7,8 +7,9 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../modules/auth/AuthContext.jsx";
 
-const API_BASE_URL = "http://localhost:8080";
-const API_URL = `${API_BASE_URL}/trello/v1/tableros`;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/trello/v1";
+const API_URL = `https://${API_BASE_URL}/tableros`; 
+
 
 const TEMPLATES = {
   "Sin plantilla": {

@@ -4,7 +4,8 @@ import Button from "../components/ui/Button.jsx";
 import Card from "../components/ui/Card.jsx";
 import { Trash2, Info, Loader2 } from 'lucide-react'; // Iconos
 
-const API_BASE_URL = 'http://localhost:8080';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/trello/v1";
 
 export default function VerTableros() {
     const navigate = useNavigate();
@@ -33,7 +34,7 @@ export default function VerTableros() {
             setLoading(true);
             setError("");
 
-            const API_URL = `${API_BASE_URL}/trello/v1/tableros`;
+            const API_URL = `${API_BASE_URL}/tableros`;
 
             const res = await fetch(API_URL, {
                 credentials: "include",

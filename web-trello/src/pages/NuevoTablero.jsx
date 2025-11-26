@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button.jsx';
 // Asume que API_BASE_URL es 'http://localhost:3000' (o el puerto correcto de tu backend)
-const API_BASE_URL = 'http://localhost:8080'; // Define esto o impórtalo de un archivo de configuración
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/trello/v1";
 
 export default function CrearTablero() {
     const navigate = useNavigate();
@@ -11,8 +11,7 @@ export default function CrearTablero() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-  
-    const API_URL = `${API_BASE_URL}/trello/v1/tableros`;
+    const API_URL = `https://${API_BASE_URL}/tableros`; 
 
     const handleSubmit = async (e) => {
         e.preventDefault();
