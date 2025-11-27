@@ -18,10 +18,11 @@ management:
         enabled: true
       show-details: always
 app:
-  base-url: http://${RAILWAY_PUBLIC_DOMAIN}/trello/v1
+  base-url: https://${RAILWAY_PUBLIC_DOMAIN}/trello/v1
   frontend-base-url: https://${WEB_TRELLO_URL}
   resend-api-key: ${RESEND_API_KEY}
   domain:
+    oauth-success-url: ${base-url}/oauth-callback
     success-url: https://${WEB_TRELLO_URL}/suscripcion/exito
     cancel-url: https://${WEB_TRELLO_URL}/suscripcion/fallo
 stripe:
