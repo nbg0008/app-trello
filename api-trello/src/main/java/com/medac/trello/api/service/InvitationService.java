@@ -80,7 +80,7 @@ public class InvitationService {
 
         // 3. CONSTRUIR EL ENLACE COMPLETO
         // Usa 'baseUrl' (inyectado) y 'token'
-        String path = String.format("invitations/accept?email=%s&token=%s", URLEncoder.encode(inviteeEmail, UTF_8), token);
+        String path = String.format("/invitations/accept?email=%s&token=%s", URLEncoder.encode(inviteeEmail, UTF_8), token);
         String acceptanceLink = baseUrl + path;
 
 
